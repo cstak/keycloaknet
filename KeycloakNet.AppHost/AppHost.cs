@@ -1,12 +1,12 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
-var apiService = builder.AddProject<Projects.KeycloakNet_ApiService>("apiservice")
+var service = builder.AddProject<Projects.KeycloakNet_Service>("service")
     .WithHttpHealthCheck("/health");
 
-builder.AddProject<Projects.KeycloakNet_Web>("webfrontend")
+builder.AddProject<Projects.KeycloakNet_WebBff>("web-bff")
     .WithExternalHttpEndpoints()
     .WithHttpHealthCheck("/health")
-    .WithReference(apiService)
-    .WaitFor(apiService);
+    .WithReference(service)
+    .WaitFor(service);
 
 builder.Build().Run();

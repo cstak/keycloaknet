@@ -1,0 +1,6 @@
+@KeycloakNet.WebBff_HostAddress = http://localhost:5252
+
+GET {{KeycloakNet.WebBff_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

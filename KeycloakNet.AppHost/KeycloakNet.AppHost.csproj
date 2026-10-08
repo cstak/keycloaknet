@@ -10,8 +10,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\KeycloakNet.ApiService\KeycloakNet.ApiService.csproj" />
-    <ProjectReference Include="..\KeycloakNet.Web\KeycloakNet.Web.csproj" />
+    <ProjectReference Include="..\KeycloakNet.WebBff\KeycloakNet.WebBff.csproj" />
+    <ProjectReference Include="..\KeycloakNet.Service\KeycloakNet.Service.csproj" />
+     <ProjectReference Include="..\KeycloakNet.Gateway\KeycloakNet.Gateway.csproj" />
+      <ProjectReference Include="..\KeycloakNet.Client\KeycloakNet.Client\KeycloakNet.Client.csproj" />
   </ItemGroup>
 
 </Project>

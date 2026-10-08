@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/Shared/">
+    <Project Path="Shared/KeycloakNet.KeycloakClient/KeycloakNet.KeycloakClient.csproj" />
+  </Folder>
+  <Project Path="KeycloakNet.Service/KeycloakNet.Service.csproj" />
+  <Project Path="KeycloakNet.AppHost/KeycloakNet.AppHost.csproj" />
+  <Project Path="KeycloakNet.Gateway/KeycloakNet.Gateway.csproj" />
+  <Project Path="KeycloakNet.ServiceDefaults/KeycloakNet.ServiceDefaults.csproj" />
+  <Project Path="KeycloakNet.Client/KeycloakNet.Client/KeycloakNet.Client.csproj" />
+  <Project Path="KeycloakNet.Client/KeycloakNet.Client.Client/KeycloakNet.Client.Client.csproj" />
+  <Project Path="KeycloakNet.WebBff/KeycloakNet.WebBff.csproj" />
+  </Solution>
