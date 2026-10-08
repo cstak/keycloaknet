@@ -9,7 +9,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\KeycloakNet.Client.Client\KeycloakNet.Client.Client.csproj" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.12" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" />
   </ItemGroup>
 
   <ItemGroup>
