@@ -1,0 +1,17 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.6.1">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AspireUseCliBundle>true</AspireUseCliBundle>
+    <UserSecretsId>f1fcbaf0-3a83-4b2e-ac25-445e532ff2b6</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\KeycloakNet.ApiService\KeycloakNet.ApiService.csproj" />
+    <ProjectReference Include="..\KeycloakNet.Web\KeycloakNet.Web.csproj" />
+  </ItemGroup>
+
+</Project>
