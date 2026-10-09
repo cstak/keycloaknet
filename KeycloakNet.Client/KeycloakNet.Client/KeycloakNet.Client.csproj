@@ -8,12 +8,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\KeycloakNet.Client.Client\KeycloakNet.Client.Client.csproj" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\KeycloakNet.ServiceDefaults\KeycloakNet.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\KeycloakNet.Client.Client\KeycloakNet.Client.Client.csproj" />
   </ItemGroup>
 
 </Project>
