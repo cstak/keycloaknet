@@ -32,12 +32,12 @@ internal static class ClaimsPrincipalExtensions
 
         var roles = new List<string>();
 
-        // 1. Standard role claims
+        // Standard role claims
         roles.AddRange(principal.FindAll(ClaimTypes.Role).Select(c => c.Value));
         roles.AddRange(principal.FindAll("role").Select(c => c.Value));
         roles.AddRange(principal.FindAll("roles").Select(c => c.Value));
 
-        // 2. Keycloak realm_access nested JSON claim
+        // Keycloak realm_access nested JSON claim
         var realmAccessClaim = principal.FindFirst("realm_access")?.Value;
         if (!string.IsNullOrWhiteSpace(realmAccessClaim))
         {
@@ -60,7 +60,7 @@ internal static class ClaimsPrincipalExtensions
             catch (JsonException ex)
             {
                 logger?.LogError(ex, "Failed to parse Keycloak 'realm_access' claim JSON. Roles could not be loaded for user {Subject}.",
-                    principal.FindFirstValue("sub") ?? principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? "Unknown");
+                principal.FindFirstValue("sub") ?? principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? "Unknown");
             }
         }
 

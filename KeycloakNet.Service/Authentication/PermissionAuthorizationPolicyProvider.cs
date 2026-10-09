@@ -3,7 +3,7 @@ using Microsoft.Extensions.Options;
 
 namespace KeycloakNet.Service.Authentication;
 
-public class PermissionAuthorizationPolicyProvider(IOptions<AuthorizationOptions> options) 
+public class PermissionAuthorizationPolicyProvider(IOptions<AuthorizationOptions> options)
     : DefaultAuthorizationPolicyProvider(options)
 {
     public override async Task<AuthorizationPolicy?> GetPolicyAsync(string policyName)
