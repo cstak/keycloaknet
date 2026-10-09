@@ -1,5 +1,3 @@
-using System.Security.Claims;
-using System.Text.Json;
 using KeycloakNet.Service.Common.Interfaces;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -19,49 +17,18 @@ public static class TestEndpoints
            .RequireAuthorization();
 
         // User About Endpoint - Authenticated User Profile & Roles (Replaces obsolete /api/me)
-        app.MapGet("/api/user/about", (IUserContext userContext, HttpContext httpContext) =>
+        app.MapGet("/api/user/about", (IUserContext userContext) =>
         {
             if (!userContext.IsAuthenticated)
             {
                 return Results.Unauthorized();
             }
 
-            var principal = httpContext.User;
-            var username = principal.FindFirst("preferred_username")?.Value
-                        ?? principal.FindFirst("name")?.Value
-                        ?? principal.Identity?.Name;
-
-            var roles = new List<string>();
-            var realmAccessClaim = principal.FindFirst("realm_access")?.Value;
-            if (!string.IsNullOrWhiteSpace(realmAccessClaim))
-            {
-                try
-                {
-                    using var document = JsonDocument.Parse(realmAccessClaim);
-                    if (document.RootElement.TryGetProperty("roles", out var rolesElement) &&
-                        rolesElement.ValueKind == JsonValueKind.Array)
-                    {
-                        foreach (var role in rolesElement.EnumerateArray())
-                        {
-                            var roleName = role.GetString();
-                            if (!string.IsNullOrWhiteSpace(roleName))
-                            {
-                                roles.Add(roleName);
-                            }
-                        }
-                    }
-                }
-                catch (JsonException)
-                {
-                    // Ignore malformed realm_access payload
-                }
-            }
-
             return Results.Ok(new UserAboutResponse(
                 UserId: userContext.UserId,
-                Username: username,
+                Username: userContext.Username,
                 IsAuthenticated: userContext.IsAuthenticated,
-                Roles: roles
+                Roles: userContext.Roles.ToList()
             ));
         })
         .RequireAuthorization();
