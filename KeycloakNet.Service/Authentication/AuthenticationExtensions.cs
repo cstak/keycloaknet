@@ -19,18 +19,18 @@ public static class AuthenticationExtensions
             .AddJwtBearer(options =>
             {
                 options.Authority = keycloakConfig["Authority"];
-                options.Audience = keycloakConfig["Audience"];
+                var audience = keycloakConfig["Audience"];
+                options.Audience = audience;
                 options.RequireHttpsMetadata = keycloakConfig.GetValue<bool>("RequireHttpsMetadata");
 
                 // Prevent default inbound claim mapping to preserve standard JWT claim types
                 options.MapInboundClaims = false;
 
-                var configuredAudience = keycloakConfig["Audience"] ?? "keycloaknet-service-client";
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,
                     ValidateAudience = true,
-                    ValidAudiences = [configuredAudience, "keycloaknet-web-bff", "account"],
+                    ValidAudience = audience,
                     ValidateLifetime = true,
                     ValidateIssuerSigningKey = true,
                     ClockSkew = TimeSpan.FromSeconds(5)
