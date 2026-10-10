@@ -48,6 +48,7 @@ public static class ServiceExtensions
             options.Cookie.Name = "__KeycloakNet_BFF";
             options.Cookie.SameSite = SameSiteMode.Lax;
             options.Cookie.HttpOnly = true;
+            // options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
             options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
         })
         .AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, options =>
