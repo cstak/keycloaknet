@@ -290,7 +290,7 @@
         isLoadingUsers = true;
         try
         {
-            adminUsers = await ApiClient.GetAdminUsersAsync();
+            adminUsers = await ApiClient.GetAdminUsersAsync() ?? [];
         }
         catch (Exception)
         {

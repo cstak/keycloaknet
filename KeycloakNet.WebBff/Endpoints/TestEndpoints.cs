@@ -1,6 +1,6 @@
+using System.Net;
 using FluentValidation;
 using KeycloakNet.WebBff.Requests;
-using KeycloakNet.WebBff.Responses;
 using KeycloakNet.WebBff.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -18,22 +18,28 @@ public static class TestEndpoints
         group.MapGet("/public", async (ICoreServiceClient coreServiceClient, CancellationToken ct) =>
         {
             var result = await coreServiceClient.GetPublicAsync(ct);
-            return Results.Ok(result);
+            return result.IsSuccess
+                ? Results.Ok(result.Data)
+                : ToErrorResult(result.StatusCode, result.Error);
         });
 
         // 2. Protected Status Endpoint - Authenticated Access
         group.MapGet("/protected", async (ICoreServiceClient coreServiceClient, CancellationToken ct) =>
         {
             var result = await coreServiceClient.GetProtectedAsync(ct);
-            return Results.Ok(result);
+            return result.IsSuccess
+                ? Results.Ok(result.Data)
+                : ToErrorResult(result.StatusCode, result.Error);
         })
         .RequireAuthorization();
 
-        // 3. User About Endpoint - Authenticated User Profile & Roles (Replaces obsolete /me)
+        // 3. User About Endpoint - Authenticated User Profile & Roles
         group.MapGet("/user/about", async (ICoreServiceClient coreServiceClient, CancellationToken ct) =>
         {
             var result = await coreServiceClient.GetUserAboutAsync(ct);
-            return result is not null ? Results.Ok(result) : Results.Unauthorized();
+            return result.IsSuccess
+                ? Results.Ok(result.Data)
+                : ToErrorResult(result.StatusCode, result.Error);
         })
         .RequireAuthorization();
 
@@ -51,25 +57,29 @@ public static class TestEndpoints
             }
 
             var result = await coreServiceClient.CreateArticleAsync(request, ct);
-            return result is not null 
-                ? Results.Created($"/bff/api/articles/{result.Id}", result) 
-                : Results.BadRequest(new { error = "Failed to create article." });
+            return result.IsSuccess && result.Data is not null
+                ? Results.Created($"/bff/api/articles/{result.Data.Id}", result.Data)
+                : ToErrorResult(result.StatusCode, result.Error);
         })
         .RequireAuthorization();
 
         // 5. Delete Article Endpoint
         group.MapDelete("/articles/{id:guid}", async (Guid id, ICoreServiceClient coreServiceClient, CancellationToken ct) =>
         {
-            var success = await coreServiceClient.DeleteArticleAsync(id, ct);
-            return success ? Results.NoContent() : Results.NotFound();
+            var result = await coreServiceClient.DeleteArticleAsync(id, ct);
+            return result.IsSuccess
+                ? Results.NoContent()
+                : ToErrorResult(result.StatusCode, result.Error);
         })
         .RequireAuthorization();
 
         // 6. Admin User Management - List Users via Keycloak REST API
         group.MapGet("/admin/users", async (ICoreServiceClient coreServiceClient, CancellationToken ct) =>
         {
-            var users = await coreServiceClient.GetAdminUsersAsync(ct);
-            return Results.Ok(users ?? []);
+            var result = await coreServiceClient.GetAdminUsersAsync(ct);
+            return result.IsSuccess
+                ? Results.Ok(result.Data ?? [])
+                : ToErrorResult(result.StatusCode, result.Error);
         })
         .RequireAuthorization();
 
@@ -87,28 +97,47 @@ public static class TestEndpoints
             }
 
             var result = await coreServiceClient.CreateAdminUserAsync(request, ct);
-            return result is not null
-                ? Results.Created($"/bff/api/admin/users/{result.Id}", result)
-                : Results.BadRequest(new { error = "Failed to create user in Keycloak." });
+            return result.IsSuccess && result.Data is not null
+                ? Results.Created($"/bff/api/admin/users/{result.Data.Id}", result.Data)
+                : ToErrorResult(result.StatusCode, result.Error);
         })
         .RequireAuthorization();
 
         // 8. Admin User Management - Delete User
         group.MapDelete("/admin/users/{id}", async (string id, ICoreServiceClient coreServiceClient, CancellationToken ct) =>
         {
-            var success = await coreServiceClient.DeleteAdminUserAsync(id, ct);
-            return success ? Results.NoContent() : Results.NotFound();
+            var result = await coreServiceClient.DeleteAdminUserAsync(id, ct);
+            return result.IsSuccess
+                ? Results.NoContent()
+                : ToErrorResult(result.StatusCode, result.Error);
         })
         .RequireAuthorization();
 
         // 9. Admin Role Management - List Realm Roles via Keycloak REST API
         group.MapGet("/admin/roles", async (ICoreServiceClient coreServiceClient, CancellationToken ct) =>
         {
-            var roles = await coreServiceClient.GetAdminRolesAsync(ct);
-            return Results.Ok(roles ?? []);
+            var result = await coreServiceClient.GetAdminRolesAsync(ct);
+            return result.IsSuccess
+                ? Results.Ok(result.Data ?? [])
+                : ToErrorResult(result.StatusCode, result.Error);
         })
         .RequireAuthorization();
 
         return app;
+    }
+
+    private static IResult ToErrorResult(HttpStatusCode statusCode, string? error = null)
+    {
+        var message = !string.IsNullOrWhiteSpace(error)
+            ? error
+            : statusCode switch
+            {
+                HttpStatusCode.Unauthorized => "Unauthorized: Authentication is required.",
+                HttpStatusCode.Forbidden => "Forbidden: You do not have permission to perform this action.",
+                HttpStatusCode.NotFound => "Resource not found.",
+                _ => $"Request failed with status {(int)statusCode} ({statusCode})."
+            };
+
+        return Results.Json(new { error = message }, statusCode: (int)statusCode);
     }
 }
