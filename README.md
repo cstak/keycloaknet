@@ -54,15 +54,28 @@ The project implements two distinct ways to register users in Keycloak:
 ### 2. Authorization Code Flow + PKCE
 User sign-in and self-registration use **OpenID Connect Authorization Code Flow with PKCE (Proof Key for Code Exchange)**. Even if an authorization code is intercepted, it cannot be exchanged for tokens without the corresponding PKCE code verifier.
 
-### 3. Encrypted Cookie Management & Automatic Token Refresh
-- **No Tokens in the Browser:** Upon successful login, the `access_token`, `refresh_token`, and `id_token` issued by Keycloak are encrypted and stored inside an `HttpOnly` cookie named `__KeycloakNet_BFF`. Client-side JavaScript cannot access or read these tokens.
-- **Silent Token Refresh:** On every outgoing API call, `TokenRelayHandler` inspects the `expires_at` timestamp stored in the cookie. If the access token is expired—or will expire within **60 seconds**—the BFF automatically exchanges the refresh token with Keycloak, updates the encrypted cookie, and attaches the fresh `Authorization: Bearer <token>` header to the downstream request.
+### 3. BFF Security Bridge, Cookie Management & Boundary Validation
+- **Security Bridge (No Tokens in the Browser):** Upon successful login, the `access_token`, `refresh_token`, and `id_token` issued by Keycloak are encrypted and stored inside an `HttpOnly` cookie named `__KeycloakNet_BFF`. Client-side JavaScript cannot access or read these tokens, and the BFF relays them as `Authorization: Bearer <token>` headers to downstream services.
+- **Silent Token Refresh:** On every outgoing API call, `TokenRelayHandler` inspects the `expires_at` timestamp stored in the cookie. If the access token is expired—or will expire within **60 seconds**—the BFF automatically exchanges the refresh token with Keycloak, updates the encrypted cookie, and forwards the request with the new token.
+- **Application Boundary Validation:** Incoming requests are validated at the BFF edge using **FluentValidation** before reaching the Core Service, and downstream HTTP status codes (`401 Unauthorized`, `403 Forbidden`, `404 Not Found`, etc.) are preserved and returned accurately to the client.
 - **Full SSO Logout (RP-Initiated Logout):** Clicking **Log Out** clears the local BFF cookie and redirects to Keycloak's end-session endpoint with `id_token_hint` to terminate the central SSO session.
 
-### 4. Why "Hybrid BFF"?
-Traditional BFF implementations are often pure pass-through reverse proxies. Our **Hybrid BFF** combines two responsibilities:
-1. **Security Bridge:** Manages OIDC, encrypted cookies, silent token refresh, and token relay.
-2. **Application Boundary Validation:** Validates incoming requests at the edge using **FluentValidation** before calling the Core Service, and preserves downstream HTTP status codes (`401 Unauthorized`, `403 Forbidden`, `404 Not Found`, etc.) back to the client.
+---
+
+## 📦 Pre-Configured Keycloak Realm (`keycloaknet-realm-export.json`)
+
+When the application starts, .NET Aspire automatically imports `keycloaknet-realm-export.json` into the Keycloak container (`--import-realm`), provisioning the **`keycloaknet-realm`** with self-registration enabled (`registrationAllowed: true`), custom roles, and three purpose-built OIDC clients:
+
+### Custom Clients
+| Client ID | Type | Why It Exists |
+| :--- | :--- | :--- |
+| **`keycloaknet-web-bff`** | Confidential (`Authorization Code + PKCE`) | Used by `KeycloakNet.WebBff` to handle interactive user login, self-registration, logout, and token refresh. Includes an `oidc-audience-mapper` so issued access tokens automatically contain `keycloaknet-service-client` in their `aud` claim. |
+| **`keycloaknet-service-client`** | Resource / Audience Target | Represents `KeycloakNet.Service`. The Core Service validates that incoming Bearer tokens explicitly carry `aud: "keycloaknet-service-client"`. |
+| **`keycloaknet-admin-client`** | Confidential (`Service Account / M2M`) | Dedicated Machine-to-Machine client with `realm-management` permissions (`manage-users`, `view-users`, `view-realm`). Used by `KeycloakNet.KeycloakClient` via the **Client Credentials Flow** to create/delete users and assign roles programmatically. |
+
+### Custom Realm Roles
+- **`admin`**: Grants access to `/api/admin/*` endpoints for user and role management.
+- **`articles:read`**, **`articles:create`**, **`articles:delete`**: Fine-grained permission roles enforced on article endpoints in `KeycloakNet.Service`.
 
 ---
 
@@ -125,3 +138,14 @@ When moving to Production or enabling **HTTPS**, update the following 5 areas:
   ```bash
   dotnet dev-certs https --trust
   ```
+
+---
+
+## ⚠️ Security Note on Secrets & Configuration
+
+Because this repository is an educational reference project designed to run out-of-the-box with a single `dotnet run` command, development credentials (such as PostgreSQL passwords, Keycloak admin credentials, and OIDC `ClientSecret` values matching `keycloaknet-realm-export.json`) are included directly in `src/KeycloakNet.AppHost/appsettings.json`.
+
+**In a real-world or production environment, never store sensitive secrets in `appsettings.json` or commit them to source control:**
+- **Local Development:** Use **.NET Secret Manager (`dotnet user-secrets`)** or local `.env` files excluded via `.gitignore`.
+- **Production / CI-CD:** Inject secrets at runtime via **Environment Variables**, **Kubernetes Secrets**, or a dedicated secret store such as **Azure Key Vault**, **AWS Secrets Manager**, or **HashiCorp Vault**.
+
