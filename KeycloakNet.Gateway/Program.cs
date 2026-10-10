@@ -1,11 +1,14 @@
 var builder = WebApplication.CreateBuilder(args);
 
 // Enable credentialed CORS for Blazor Client
+var allowedOrigin = builder.Configuration["Cors:AllowedOrigin"]
+    ?? throw new InvalidOperationException("Required configuration 'Cors:AllowedOrigin' is missing.");
+
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.WithOrigins("http://localhost:5300")
+        policy.WithOrigins(allowedOrigin)
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
