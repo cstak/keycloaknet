@@ -4,7 +4,9 @@ using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
-var gatewayUrl = builder.Configuration["Gateway:BaseUrl"] ?? "http://localhost:5000";
+var gatewayUrl = builder.Configuration["Gateway:BaseUrl"]
+    ?? throw new InvalidOperationException("Required configuration 'Gateway:BaseUrl' is missing.");
+
 
 builder.Services.AddHttpClient<ApiClient>(client =>
 {

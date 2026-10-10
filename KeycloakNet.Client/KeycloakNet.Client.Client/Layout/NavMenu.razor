@@ -97,7 +97,8 @@
 </div>
 
 @code {
-    private string GatewayBaseUrl => Configuration["Gateway:BaseUrl"]?.TrimEnd('/') ?? "http://localhost:5000";
+    private string GatewayBaseUrl => Configuration["Gateway:BaseUrl"]?.TrimEnd('/')
+        ?? throw new InvalidOperationException("Required configuration 'Gateway:BaseUrl' is missing.");
 
     private string GetInitial(string? name)
     {
