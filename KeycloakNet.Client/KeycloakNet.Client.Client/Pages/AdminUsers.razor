@@ -18,7 +18,7 @@
             <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 rounded-pill shadow-sm">
                 Service Account M2M
             </span>
-            <button class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm" @onclick="LoadAdminUsers" disabled="@isLoadingUsers">
+            <button class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm" @onclick="RefreshAll" disabled="@isLoadingUsers">
                 @if (isLoadingUsers)
                 {
                     <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
@@ -27,6 +27,16 @@
             </button>
         </div>
     </div>
+
+    @if (!string.IsNullOrEmpty(loadError))
+    {
+        <div class="alert alert-danger border rounded-4 p-3 mb-4 shadow-sm small d-flex align-items-center justify-content-between">
+            <div>
+                <div class="fw-bold mb-1">🔒 Access Denied or Failed to Load Admin Data</div>
+                <div>@loadError (Requires <code>admin</code> realm role)</div>
+            </div>
+        </div>
+    }
 
     <div class="row g-4">
         <!-- User Provisioning Form (Left Column) -->
@@ -90,7 +100,7 @@
                             else if (!availableRoles.Any())
                             {
                                 <div class="text-muted small py-2 text-center">
-                                    No custom realm roles found.
+                                    @(string.IsNullOrEmpty(loadError) ? "No custom realm roles found." : "Roles unavailable (admin permission required).")
                                 </div>
                             }
                             else
@@ -168,6 +178,14 @@
                             <div>Fetching users from Keycloak...</div>
                         </div>
                     }
+                    else if (!string.IsNullOrEmpty(loadError))
+                    {
+                        <div class="text-center py-5 text-danger small my-auto">
+                            <div class="fs-2 mb-2">🚫</div>
+                            <div class="fw-semibold">Unable to display realm users</div>
+                            <div class="text-muted mt-1">@loadError</div>
+                        </div>
+                    }
                     else if (!adminUsers.Any())
                     {
                         <div class="text-center py-5 text-muted small my-auto">
@@ -233,6 +251,7 @@
     private bool isLoadingUsers;
     private bool isLoadingRoles;
     private bool isCreatingUser;
+    private string? loadError;
     private string? userCreateSuccess;
     private string? userCreateError;
 
@@ -244,6 +263,12 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await RefreshAll();
+    }
+
+    private async Task RefreshAll()
+    {
+        loadError = null;
         await Task.WhenAll(LoadAdminUsers(), LoadRoles());
     }
 
@@ -275,9 +300,10 @@
                     .ToList();
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             availableRoles = [];
+            loadError ??= ex.Message;
         }
         finally
         {
@@ -292,9 +318,10 @@
         {
             adminUsers = await ApiClient.GetAdminUsersAsync() ?? [];
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             adminUsers = [];
+            loadError = ex.Message;
         }
         finally
         {
@@ -327,7 +354,7 @@
                 
                 // Clear selection and reload users
                 selectedRoles.Clear();
-                await LoadAdminUsers();
+                await RefreshAll();
             }
         }
         catch (Exception ex)
@@ -347,7 +374,7 @@
             var success = await ApiClient.DeleteAdminUserAsync(userId);
             if (success)
             {
-                await LoadAdminUsers();
+                await RefreshAll();
             }
         }
         catch (Exception ex)
@@ -356,4 +383,3 @@
         }
     }
 }
-

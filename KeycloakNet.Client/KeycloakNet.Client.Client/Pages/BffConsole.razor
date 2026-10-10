@@ -56,8 +56,17 @@
 
                         <button class="btn btn-success rounded-pill py-2 text-start px-3 d-flex align-items-center justify-content-between shadow-sm" 
                                 @onclick="CallCreateArticleApi" disabled="@isLoadingArticle">
-                            <span>✍️ 3. Create Article (FluentValidation + Relay)</span>
+                            <span>✍️ 3. Create Article (<code>articles:create</code>)</span>
                             @if (isLoadingArticle)
+                            {
+                                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            }
+                        </button>
+
+                        <button class="btn btn-outline-danger rounded-pill py-2 text-start px-3 d-flex align-items-center justify-content-between shadow-sm" 
+                                @onclick="CallDeleteArticleApi" disabled="@isLoadingDeleteArticle">
+                            <span>🗑️ 4. Delete Article (<code>articles:delete</code>)</span>
+                            @if (isLoadingDeleteArticle)
                             {
                                 <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
                             }
@@ -90,7 +99,7 @@
                     <span class="fw-bold text-dark d-flex align-items-center gap-2">
                         <span>📊</span> Response Output
                     </span>
-                    @if (publicResult != null || userAboutResult != null || articleResult != null || !string.IsNullOrEmpty(userAboutError) || !string.IsNullOrEmpty(articleError))
+                    @if (HasAnyOutput)
                     {
                         <button class="btn btn-sm btn-link text-muted p-0 text-decoration-none small" @onclick="ClearResults">
                             Clear Results
@@ -98,7 +107,7 @@
                     }
                 </div>
                 <div class="card-body p-4">
-                    @if (publicResult == null && userAboutResult == null && articleResult == null && string.IsNullOrEmpty(userAboutError) && string.IsNullOrEmpty(articleError))
+                    @if (!HasAnyOutput)
                     {
                         <div class="text-center py-5 text-muted my-5">
                             <div class="fs-1 mb-2">🧪</div>
@@ -175,6 +184,24 @@
                             <div>@articleError</div>
                         </div>
                     }
+
+                    @if (!string.IsNullOrEmpty(deleteArticleSuccess))
+                    {
+                        <div class="alert alert-warning border rounded-3 p-3 mb-3 shadow-sm">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <strong class="text-dark small">🗑️ DELETE /bff/api/articles/{id}</strong>
+                                <span class="badge bg-warning text-dark">204 No Content</span>
+                            </div>
+                            <div class="small text-dark">@deleteArticleSuccess</div>
+                        </div>
+                    }
+                    else if (!string.IsNullOrEmpty(deleteArticleError))
+                    {
+                        <div class="alert alert-danger border rounded-3 p-3 mb-3 shadow-sm small">
+                            <div class="fw-bold mb-1">🗑️ DELETE /bff/api/articles Error:</div>
+                            <div>@deleteArticleError</div>
+                        </div>
+                    }
                 </div>
             </div>
         </div>
@@ -187,6 +214,8 @@
     private string? userAboutError;
     private ArticleResponse? articleResult;
     private string? articleError;
+    private string? deleteArticleSuccess;
+    private string? deleteArticleError;
 
     private string articleTitle = "Modern .NET 10 BFF Architecture";
     private string articleContent = "FluentValidation and Token Relay integration test.";
@@ -194,6 +223,16 @@
     private bool isLoadingPublic;
     private bool isLoadingUserAbout;
     private bool isLoadingArticle;
+    private bool isLoadingDeleteArticle;
+
+    private bool HasAnyOutput =>
+        publicResult != null ||
+        userAboutResult != null ||
+        articleResult != null ||
+        !string.IsNullOrEmpty(userAboutError) ||
+        !string.IsNullOrEmpty(articleError) ||
+        !string.IsNullOrEmpty(deleteArticleSuccess) ||
+        !string.IsNullOrEmpty(deleteArticleError);
 
     private void ClearResults()
     {
@@ -202,6 +241,8 @@
         userAboutError = null;
         articleResult = null;
         articleError = null;
+        deleteArticleSuccess = null;
+        deleteArticleError = null;
     }
 
     private async Task CallPublicApi()
@@ -259,5 +300,25 @@
             isLoadingArticle = false;
         }
     }
-}
 
+    private async Task CallDeleteArticleApi()
+    {
+        isLoadingDeleteArticle = true;
+        deleteArticleSuccess = null;
+        deleteArticleError = null;
+        try
+        {
+            var targetId = articleResult?.Id ?? Guid.Parse("11111111-1111-1111-1111-111111111111");
+            await ApiClient.DeleteArticleAsync(targetId);
+            deleteArticleSuccess = $"Article '{targetId}' deleted successfully (authorized with 'articles:delete' role).";
+        }
+        catch (Exception ex)
+        {
+            deleteArticleError = ex.Message;
+        }
+        finally
+        {
+            isLoadingDeleteArticle = false;
+        }
+    }
+}

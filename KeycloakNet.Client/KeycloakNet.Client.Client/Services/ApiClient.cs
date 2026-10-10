@@ -32,11 +32,7 @@ public class ApiClient(HttpClient httpClient)
         request.SetBrowserRequestCredentials(BrowserRequestCredentials.Include);
 
         var response = await httpClient.SendAsync(request);
-        if (!response.IsSuccessStatusCode)
-        {
-            var errorBody = await response.Content.ReadAsStringAsync();
-            throw new HttpRequestException($"{(int)response.StatusCode} {response.ReasonPhrase}: {errorBody}");
-        }
+        await EnsureSuccessAsync(response);
 
         return await response.Content.ReadFromJsonAsync<UserAboutResponse>();
     }
@@ -45,10 +41,8 @@ public class ApiClient(HttpClient httpClient)
     {
         var request = new HttpRequestMessage(HttpMethod.Get, "bff/api/public");
         var response = await httpClient.SendAsync(request);
-        if (!response.IsSuccessStatusCode)
-        {
-            return null;
-        }
+        await EnsureSuccessAsync(response);
+
         return await response.Content.ReadFromJsonAsync<MessageResponse>();
     }
 
@@ -61,13 +55,18 @@ public class ApiClient(HttpClient httpClient)
         request.SetBrowserRequestCredentials(BrowserRequestCredentials.Include);
 
         var response = await httpClient.SendAsync(request);
-        if (!response.IsSuccessStatusCode)
-        {
-            var errorBody = await response.Content.ReadAsStringAsync();
-            throw new HttpRequestException($"{(int)response.StatusCode} {response.ReasonPhrase}: {errorBody}");
-        }
+        await EnsureSuccessAsync(response);
 
         return await response.Content.ReadFromJsonAsync<ArticleResponse>();
+    }
+
+    public async Task DeleteArticleAsync(Guid id)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Delete, $"bff/api/articles/{id}");
+        request.SetBrowserRequestCredentials(BrowserRequestCredentials.Include);
+
+        var response = await httpClient.SendAsync(request);
+        await EnsureSuccessAsync(response);
     }
 
     // Admin / Headless User Management
@@ -77,10 +76,7 @@ public class ApiClient(HttpClient httpClient)
         request.SetBrowserRequestCredentials(BrowserRequestCredentials.Include);
 
         var response = await httpClient.SendAsync(request);
-        if (!response.IsSuccessStatusCode)
-        {
-            return null;
-        }
+        await EnsureSuccessAsync(response);
 
         return await response.Content.ReadFromJsonAsync<List<AdminUserResponse>>();
     }
@@ -94,11 +90,7 @@ public class ApiClient(HttpClient httpClient)
         request.SetBrowserRequestCredentials(BrowserRequestCredentials.Include);
 
         var response = await httpClient.SendAsync(request);
-        if (!response.IsSuccessStatusCode)
-        {
-            var errorBody = await response.Content.ReadAsStringAsync();
-            throw new HttpRequestException($"{(int)response.StatusCode} {response.ReasonPhrase}: {errorBody}");
-        }
+        await EnsureSuccessAsync(response);
 
         return await response.Content.ReadFromJsonAsync<AdminUserResponse>();
     }
@@ -109,7 +101,9 @@ public class ApiClient(HttpClient httpClient)
         request.SetBrowserRequestCredentials(BrowserRequestCredentials.Include);
 
         var response = await httpClient.SendAsync(request);
-        return response.IsSuccessStatusCode;
+        await EnsureSuccessAsync(response);
+
+        return true;
     }
 
     public async Task<List<AdminRoleResponse>?> GetAdminRolesAsync()
@@ -118,12 +112,22 @@ public class ApiClient(HttpClient httpClient)
         request.SetBrowserRequestCredentials(BrowserRequestCredentials.Include);
 
         var response = await httpClient.SendAsync(request);
-        if (!response.IsSuccessStatusCode)
-        {
-            return null;
-        }
+        await EnsureSuccessAsync(response);
 
         return await response.Content.ReadFromJsonAsync<List<AdminRoleResponse>>();
+    }
+
+    private static async Task EnsureSuccessAsync(HttpResponseMessage response)
+    {
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorBody = await response.Content.ReadAsStringAsync();
+            var details = string.IsNullOrWhiteSpace(errorBody)
+                ? $"{(int)response.StatusCode} {response.ReasonPhrase}"
+                : $"{(int)response.StatusCode} {response.ReasonPhrase}: {errorBody}";
+
+            throw new HttpRequestException(details, null, response.StatusCode);
+        }
     }
 }
 
