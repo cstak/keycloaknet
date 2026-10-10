@@ -5,6 +5,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
+    <AssemblyName>KeycloakNet.Client</AssemblyName>
+    <RootNamespace>KeycloakNet.Client</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

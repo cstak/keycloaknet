@@ -1,0 +1,359 @@
+@page "/admin/users"
+@inject ApiClient ApiClient
+
+<PageTitle>User Management - KeycloakNet</PageTitle>
+
+<div class="container-fluid max-w-1200 py-2">
+    <!-- Page Header -->
+    <div class="d-flex align-items-center justify-content-between pb-3 mb-4 border-bottom">
+        <div>
+            <h2 class="fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                <span>👥</span> Keycloak User Management
+            </h2>
+            <p class="text-muted mb-0 small">
+                Direct Realm Administration via M2M Service Account (Client Credentials Flow with <code>keycloaknet-admin-client</code>).
+            </p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 rounded-pill shadow-sm">
+                Service Account M2M
+            </span>
+            <button class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm" @onclick="LoadAdminUsers" disabled="@isLoadingUsers">
+                @if (isLoadingUsers)
+                {
+                    <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                }
+                🔄 Refresh Users
+            </button>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- User Provisioning Form (Left Column) -->
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-header bg-white border-bottom py-3 rounded-top-4">
+                    <span class="fw-bold text-dark d-flex align-items-center gap-2">
+                        <span>➕</span> Provision New User
+                    </span>
+                </div>
+                <div class="card-body p-4">
+                    <p class="text-muted small mb-3">
+                        Create users directly inside Keycloak database without manual registration forms or redirects.
+                    </p>
+
+                    <div class="mb-2">
+                        <label class="form-label small fw-semibold mb-1">Username *</label>
+                        <input type="text" class="form-control form-control-sm" placeholder="e.g. john.doe" @bind="newUsername" />
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label small fw-semibold mb-1">Email *</label>
+                        <input type="email" class="form-control form-control-sm" placeholder="e.g. john.doe@example.com" @bind="newEmail" />
+                    </div>
+
+                    <div class="row g-2 mb-2">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold mb-1">First Name</label>
+                            <input type="text" class="form-control form-control-sm" placeholder="John" @bind="newFirstName" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold mb-1">Last Name</label>
+                            <input type="text" class="form-control form-control-sm" placeholder="Doe" @bind="newLastName" />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold mb-1">Password *</label>
+                        <input type="password" class="form-control form-control-sm" placeholder="Min. 6 chars" @bind="newPassword" />
+                    </div>
+
+                    <!-- Multi-Role Selection Section -->
+                    <div class="mb-3">
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <label class="form-label small fw-semibold mb-0">Assign Realm Roles</label>
+                            @if (selectedRoles.Count > 0)
+                            {
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle small">
+                                    @selectedRoles.Count selected
+                                </span>
+                            }
+                        </div>
+
+                        <div class="border rounded-3 p-2 bg-light" style="max-height: 180px; overflow-y: auto;">
+                            @if (isLoadingRoles)
+                            {
+                                <div class="text-center py-2 text-muted small">
+                                    <span class="spinner-border spinner-border-sm me-1" role="status"></span> Loading roles from Keycloak...
+                                </div>
+                            }
+                            else if (!availableRoles.Any())
+                            {
+                                <div class="text-muted small py-2 text-center">
+                                    No custom realm roles found.
+                                </div>
+                            }
+                            else
+                            {
+                                @foreach (var role in availableRoles)
+                                {
+                                    var isChecked = selectedRoles.Contains(role.Name);
+                                    <div class="form-check py-1 border-bottom border-light">
+                                        <input class="form-check-input" type="checkbox" id="@($"role-chk-{role.Id}")" 
+                                               checked="@isChecked" 
+                                               @onchange="(e) => ToggleRole(role.Name, e.Value)" />
+                                        <label class="form-check-label small user-select-none w-100" for="@($"role-chk-{role.Id}")">
+                                            <div class="d-flex align-items-center justify-content-between">
+                                                <span class="fw-semibold @(isChecked ? "text-primary" : "text-dark")">@role.Name</span>
+                                                @if (isChecked)
+                                                {
+                                                    <span class="badge bg-primary text-white" style="font-size: 0.65rem;">Selected</span>
+                                                }
+                                            </div>
+                                            @if (!string.IsNullOrWhiteSpace(role.Description))
+                                            {
+                                                <div class="text-muted small" style="font-size: 0.75rem;">@role.Description</div>
+                                            }
+                                        </label>
+                                    </div>
+                                }
+                            }
+                        </div>
+                        <small class="text-muted d-block mt-1">
+                            * You can select multiple roles to assign simultaneously (e.g. <code>articles:create</code> and <code>articles:delete</code>).
+                        </small>
+                    </div>
+
+                    <button class="btn btn-primary btn-sm w-100 rounded-pill py-2 shadow-sm" @onclick="CreateAdminUser" disabled="@isCreatingUser">
+                        @if (isCreatingUser)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                        }
+                        ✨ Create User in Keycloak
+                    </button>
+
+                    @if (!string.IsNullOrEmpty(userCreateSuccess))
+                    {
+                        <div class="alert alert-success border rounded-3 p-3 mt-3 mb-0 small shadow-sm">
+                            <div class="fw-bold mb-1">✅ Success!</div>
+                            <div>@userCreateSuccess</div>
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(userCreateError))
+                    {
+                        <div class="alert alert-danger border rounded-3 p-3 mt-3 mb-0 small shadow-sm">
+                            <div class="fw-bold mb-1">❌ Error:</div>
+                            <div>@userCreateError</div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Users List Table (Right Column) -->
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-header bg-white border-bottom py-3 rounded-top-4 d-flex align-items-center justify-content-between">
+                    <span class="fw-bold text-dark d-flex align-items-center gap-2">
+                        <span>📋</span> Realm Users (@(adminUsers?.Count ?? 0))
+                    </span>
+                    <span class="badge bg-light text-secondary border small">Real-time Keycloak DB</span>
+                </div>
+                <div class="card-body p-4 d-flex flex-column">
+                    @if (adminUsers == null)
+                    {
+                        <div class="text-center py-5 text-muted small my-auto">
+                            <div class="spinner-border spinner-border-sm text-primary mb-2" role="status"></div>
+                            <div>Fetching users from Keycloak...</div>
+                        </div>
+                    }
+                    else if (!adminUsers.Any())
+                    {
+                        <div class="text-center py-5 text-muted small my-auto">
+                            No users found in this realm.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive flex-grow-1" style="max-height: 520px;">
+                            <table class="table table-sm table-hover align-middle small mb-0">
+                                <thead class="table-light sticky-top">
+                                    <tr>
+                                        <th>Username</th>
+                                        <th>Email</th>
+                                        <th>Full Name</th>
+                                        <th>Status</th>
+                                        <th class="text-end">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var user in adminUsers)
+                                    {
+                                        <tr>
+                                            <td class="fw-semibold">
+                                                <code>@user.Username</code>
+                                            </td>
+                                            <td class="text-muted">@(user.Email ?? "-")</td>
+                                            <td>@user.FirstName @user.LastName</td>
+                                            <td>
+                                                @if (user.Enabled)
+                                                {
+                                                    <span class="badge bg-success-subtle text-success border border-success-subtle">Active</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-secondary-subtle text-secondary border">Disabled</span>
+                                                }
+                                            </td>
+                                            <td class="text-end">
+                                                <button class="btn btn-outline-danger btn-sm py-0 px-2 rounded-pill" 
+                                                        title="Delete user from Keycloak" 
+                                                        @onclick="() => DeleteAdminUser(user.Id)">
+                                                    🗑️
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<AdminUserResponse>? adminUsers;
+    private List<AdminRoleResponse> availableRoles = [];
+    private HashSet<string> selectedRoles = [];
+
+    private bool isLoadingUsers;
+    private bool isLoadingRoles;
+    private bool isCreatingUser;
+    private string? userCreateSuccess;
+    private string? userCreateError;
+
+    private string newUsername = "developer.user";
+    private string newEmail = "developer@keycloaknet.local";
+    private string newFirstName = "Developer";
+    private string newLastName = "KeycloakNet";
+    private string newPassword = "Password123!";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.WhenAll(LoadAdminUsers(), LoadRoles());
+    }
+
+    private void ToggleRole(string roleName, object? isChecked)
+    {
+        if (isChecked is bool checkedVal && checkedVal)
+        {
+            selectedRoles.Add(roleName);
+        }
+        else
+        {
+            selectedRoles.Remove(roleName);
+        }
+    }
+
+    private async Task LoadRoles()
+    {
+        isLoadingRoles = true;
+        try
+        {
+            var roles = await ApiClient.GetAdminRolesAsync();
+            if (roles != null)
+            {
+                availableRoles = roles
+                    .Where(r => !r.Name.StartsWith("default-roles-", StringComparison.OrdinalIgnoreCase) 
+                             && r.Name != "offline_access" 
+                             && r.Name != "uma_authorization")
+                    .OrderBy(r => r.Name)
+                    .ToList();
+            }
+        }
+        catch (Exception)
+        {
+            availableRoles = [];
+        }
+        finally
+        {
+            isLoadingRoles = false;
+        }
+    }
+
+    private async Task LoadAdminUsers()
+    {
+        isLoadingUsers = true;
+        try
+        {
+            adminUsers = await ApiClient.GetAdminUsersAsync();
+        }
+        catch (Exception)
+        {
+            adminUsers = [];
+        }
+        finally
+        {
+            isLoadingUsers = false;
+        }
+    }
+
+    private async Task CreateAdminUser()
+    {
+        isCreatingUser = true;
+        userCreateSuccess = null;
+        userCreateError = null;
+        try
+        {
+            var rolesToAssign = selectedRoles.ToList();
+            var request = new CreateAdminUserRequest(
+                Username: newUsername,
+                Email: newEmail,
+                FirstName: newFirstName,
+                LastName: newLastName,
+                Password: newPassword,
+                Roles: rolesToAssign.Count > 0 ? rolesToAssign : null
+            );
+
+            var created = await ApiClient.CreateAdminUserAsync(request);
+            if (created != null)
+            {
+                var roleSummary = rolesToAssign.Count > 0 ? string.Join(", ", rolesToAssign) : "None";
+                userCreateSuccess = $"User '{created.Username}' successfully created in Keycloak (ID: {created.Id}) with roles: [{roleSummary}]!";
+                
+                // Clear selection and reload users
+                selectedRoles.Clear();
+                await LoadAdminUsers();
+            }
+        }
+        catch (Exception ex)
+        {
+            userCreateError = ex.Message;
+        }
+        finally
+        {
+            isCreatingUser = false;
+        }
+    }
+
+    private async Task DeleteAdminUser(string userId)
+    {
+        try
+        {
+            var success = await ApiClient.DeleteAdminUserAsync(userId);
+            if (success)
+            {
+                await LoadAdminUsers();
+            }
+        }
+        catch (Exception ex)
+        {
+            userCreateError = $"Failed to delete user: {ex.Message}";
+        }
+    }
+}
+

@@ -1,0 +1,263 @@
+@page "/bff-console"
+@inject ApiClient ApiClient
+
+<PageTitle>BFF Test Console - KeycloakNet</PageTitle>
+
+<div class="container-fluid max-w-1200 py-2">
+    <!-- Page Header -->
+    <div class="d-flex align-items-center justify-content-between pb-3 mb-4 border-bottom">
+        <div>
+            <h2 class="fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                <span>🧪</span> Hybrid BFF Test Console
+            </h2>
+            <p class="text-muted mb-0 small">
+                Verify BFF boundary validation, session cookies, Keycloak Token Relay, and Clean Architecture Core Service integration.
+            </p>
+        </div>
+        <div class="text-end d-none d-md-block">
+            <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill shadow-sm">
+                Gateway ➔ WebBff ➔ Core Service
+            </span>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Control Panel & Request Config -->
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-header bg-white border-bottom py-3 rounded-top-4">
+                    <span class="fw-bold text-dark d-flex align-items-center gap-2">
+                        <span>⚡</span> Test Triggers
+                    </span>
+                </div>
+                <div class="card-body p-4">
+                    <p class="text-muted small mb-3">
+                        Execute test calls through the YARP reverse proxy and WebBff to the Core Service:
+                    </p>
+
+                    <div class="d-grid gap-2 mb-4">
+                        <button class="btn btn-outline-secondary rounded-pill py-2 text-start px-3 d-flex align-items-center justify-content-between" 
+                                @onclick="CallPublicApi" disabled="@isLoadingPublic">
+                            <span>🌐 1. Public API (Anonymous Allowed)</span>
+                            @if (isLoadingPublic)
+                            {
+                                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            }
+                        </button>
+
+                        <button class="btn btn-primary rounded-pill py-2 text-start px-3 d-flex align-items-center justify-content-between shadow-sm" 
+                                @onclick="CallUserAboutApi" disabled="@isLoadingUserAbout">
+                            <span>🛡️ 2. User Info & Roles (Token Relay)</span>
+                            @if (isLoadingUserAbout)
+                            {
+                                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            }
+                        </button>
+
+                        <button class="btn btn-success rounded-pill py-2 text-start px-3 d-flex align-items-center justify-content-between shadow-sm" 
+                                @onclick="CallCreateArticleApi" disabled="@isLoadingArticle">
+                            <span>✍️ 3. Create Article (FluentValidation + Relay)</span>
+                            @if (isLoadingArticle)
+                            {
+                                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            }
+                        </button>
+                    </div>
+
+                    <!-- Article Parameters Sub-Form -->
+                    <div class="p-3 bg-light rounded-3 border">
+                        <div class="small fw-bold text-dark mb-2">📝 Article Payload (Validation Test)</div>
+                        <div class="mb-2">
+                            <label class="form-label small text-muted mb-1">Title</label>
+                            <input type="text" class="form-control form-control-sm" placeholder="Title (min 3 chars)" @bind="articleTitle" />
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label small text-muted mb-1">Content</label>
+                            <textarea rows="3" class="form-control form-control-sm" placeholder="Content (min 5 chars)" @bind="articleContent"></textarea>
+                        </div>
+                        <small class="text-muted d-block mt-2 fst-italic">
+                            * Pro Tip: Set the title to fewer than 3 characters to observe WebBff's FluentValidation reject the request with HTTP 400 immediately.
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Execution Responses & Details -->
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-header bg-white border-bottom py-3 rounded-top-4 d-flex align-items-center justify-content-between">
+                    <span class="fw-bold text-dark d-flex align-items-center gap-2">
+                        <span>📊</span> Response Output
+                    </span>
+                    @if (publicResult != null || userAboutResult != null || articleResult != null || !string.IsNullOrEmpty(userAboutError) || !string.IsNullOrEmpty(articleError))
+                    {
+                        <button class="btn btn-sm btn-link text-muted p-0 text-decoration-none small" @onclick="ClearResults">
+                            Clear Results
+                        </button>
+                    }
+                </div>
+                <div class="card-body p-4">
+                    @if (publicResult == null && userAboutResult == null && articleResult == null && string.IsNullOrEmpty(userAboutError) && string.IsNullOrEmpty(articleError))
+                    {
+                        <div class="text-center py-5 text-muted my-5">
+                            <div class="fs-1 mb-2">🧪</div>
+                            <div class="fw-semibold">No requests executed yet</div>
+                            <div class="small text-muted mt-1">
+                                Click any trigger on the left to inspect HTTP responses, payloads, and claims.
+                            </div>
+                        </div>
+                    }
+
+                    @if (publicResult != null)
+                    {
+                        <div class="alert alert-secondary border rounded-3 p-3 mb-3 shadow-sm">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <strong class="text-dark small">🌐 GET /bff/api/public</strong>
+                                <span class="badge bg-success-subtle text-success border">200 OK</span>
+                            </div>
+                            <div class="text-dark small">@publicResult.Message</div>
+                        </div>
+                    }
+
+                    @if (userAboutResult != null)
+                    {
+                        <div class="alert alert-success border rounded-3 p-3 mb-3 shadow-sm">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <strong class="text-success-emphasis small">🛡️ GET /bff/api/user/about (Core Service via Token Relay)</strong>
+                                <span class="badge bg-success">200 OK</span>
+                            </div>
+                            <div class="small">
+                                <div class="mb-1"><strong>Keycloak User ID:</strong> <code>@userAboutResult.UserId</code></div>
+                                <div class="mb-1"><strong>Username:</strong> @userAboutResult.Username</div>
+                                <div class="mb-1"><strong>Authenticated:</strong> @(userAboutResult.IsAuthenticated ? "Yes" : "No")</div>
+                                @if (userAboutResult.Roles.Any())
+                                {
+                                    <div class="mt-2 d-flex align-items-center gap-1 flex-wrap">
+                                        <strong>Roles:</strong>
+                                        @foreach (var role in userAboutResult.Roles)
+                                        {
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle">@role</span>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                    else if (!string.IsNullOrEmpty(userAboutError))
+                    {
+                        <div class="alert alert-danger border rounded-3 p-3 mb-3 shadow-sm small">
+                            <div class="fw-bold mb-1">🛡️ /bff/api/user/about Error:</div>
+                            <div>@userAboutError</div>
+                        </div>
+                    }
+
+                    @if (articleResult != null)
+                    {
+                        <div class="alert alert-info border rounded-3 p-3 mb-3 shadow-sm">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <strong class="text-info-emphasis small">✍️ POST /bff/api/articles (Validated & Created in Core Service)</strong>
+                                <span class="badge bg-info text-dark">201 Created</span>
+                            </div>
+                            <div class="small">
+                                <div class="mb-1"><strong>Article ID:</strong> <code>@articleResult.Id</code></div>
+                                <div class="mb-1"><strong>Title:</strong> @articleResult.Title</div>
+                                <div class="mb-1"><strong>Content:</strong> @articleResult.Content</div>
+                                <div class="mb-1"><strong>Author ID (Extracted from Bearer Token):</strong> <code class="text-primary">@articleResult.AuthorId</code></div>
+                                <div><strong>Created Timestamp (UTC):</strong> @articleResult.CreatedAtUtc</div>
+                            </div>
+                        </div>
+                    }
+                    else if (!string.IsNullOrEmpty(articleError))
+                    {
+                        <div class="alert alert-danger border rounded-3 p-3 mb-3 shadow-sm small">
+                            <div class="fw-bold mb-1">✍️ /bff/api/articles Error:</div>
+                            <div>@articleError</div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private MessageResponse? publicResult;
+    private UserAboutResponse? userAboutResult;
+    private string? userAboutError;
+    private ArticleResponse? articleResult;
+    private string? articleError;
+
+    private string articleTitle = "Modern .NET 10 BFF Architecture";
+    private string articleContent = "FluentValidation and Token Relay integration test.";
+
+    private bool isLoadingPublic;
+    private bool isLoadingUserAbout;
+    private bool isLoadingArticle;
+
+    private void ClearResults()
+    {
+        publicResult = null;
+        userAboutResult = null;
+        userAboutError = null;
+        articleResult = null;
+        articleError = null;
+    }
+
+    private async Task CallPublicApi()
+    {
+        isLoadingPublic = true;
+        publicResult = null;
+        try
+        {
+            publicResult = await ApiClient.GetPublicAsync();
+        }
+        catch (Exception ex)
+        {
+            publicResult = new MessageResponse($"Request Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoadingPublic = false;
+        }
+    }
+
+    private async Task CallUserAboutApi()
+    {
+        isLoadingUserAbout = true;
+        userAboutResult = null;
+        userAboutError = null;
+        try
+        {
+            userAboutResult = await ApiClient.GetUserAboutAsync();
+        }
+        catch (Exception ex)
+        {
+            userAboutError = ex.Message;
+        }
+        finally
+        {
+            isLoadingUserAbout = false;
+        }
+    }
+
+    private async Task CallCreateArticleApi()
+    {
+        isLoadingArticle = true;
+        articleResult = null;
+        articleError = null;
+        try
+        {
+            articleResult = await ApiClient.CreateArticleAsync(articleTitle, articleContent);
+        }
+        catch (Exception ex)
+        {
+            articleError = ex.Message;
+        }
+        finally
+        {
+            isLoadingArticle = false;
+        }
+    }
+}
+

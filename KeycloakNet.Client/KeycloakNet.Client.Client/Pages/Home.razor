@@ -1,0 +1,124 @@
+@page "/"
+
+<PageTitle>Dashboard - KeycloakNet</PageTitle>
+
+<div class="container-fluid max-w-1200 py-2">
+    <!-- Hero / Title -->
+    <div class="d-flex align-items-center justify-content-between pb-3 mb-4 border-bottom">
+        <div>
+            <h2 class="fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                <span>🔐</span> KeycloakNet Dashboard
+            </h2>
+            <p class="text-muted mb-0 small">
+                Enterprise .NET 10 Identity Architecture with Keycloak 26.8, YARP Gateway, Hybrid WebBff, and Clean Architecture Core Service.
+            </p>
+        </div>
+        <div class="text-end d-none d-lg-block">
+            <span class="badge bg-success px-3 py-2 rounded-pill shadow-sm">
+                System Online (Healthy)
+            </span>
+        </div>
+    </div>
+
+    <!-- Quick Navigation Cards -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm rounded-4 h-100 hover-shadow transition-all">
+                <div class="card-body p-4 d-flex flex-column">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <div class="p-3 bg-primary-subtle text-primary rounded-4 fs-3">
+                            🧪
+                        </div>
+                        <span class="badge bg-light text-secondary border">Interactive Testing</span>
+                    </div>
+                    <h4 class="fw-bold text-dark mb-2">BFF Test Console</h4>
+                    <p class="text-muted small flex-grow-1">
+                        Test end-to-end API calls through the YARP reverse proxy and WebBff. Verify anonymous public endpoints, Keycloak Token Relay (user claims & roles), and FluentValidation pipeline behavior.
+                    </p>
+                    <div class="pt-3 border-top mt-auto">
+                        <a href="bff-console" class="btn btn-primary rounded-pill px-4 shadow-sm w-100 d-flex align-items-center justify-content-center gap-2">
+                            <span>Open BFF Console</span>
+                            <span>➔</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm rounded-4 h-100 hover-shadow transition-all">
+                <div class="card-body p-4 d-flex flex-column">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <div class="p-3 bg-success-subtle text-success rounded-4 fs-3">
+                            👥
+                        </div>
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle">M2M Service Account</span>
+                    </div>
+                    <h4 class="fw-bold text-dark mb-2">User Management</h4>
+                    <p class="text-muted small flex-grow-1">
+                        Direct Keycloak Realm Administration via dedicated <code>keycloaknet-admin-client</code> M2M credentials. Provision new users programmatically, assign multiple realm roles, and inspect or delete realm users in real time.
+                    </p>
+                    <div class="pt-3 border-top mt-auto">
+                        <a href="admin/users" class="btn btn-outline-primary rounded-pill px-4 shadow-sm w-100 d-flex align-items-center justify-content-center gap-2">
+                            <span>Manage Users</span>
+                            <span>➔</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Architecture Blueprint & Technical Highlights -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-header bg-white border-bottom py-3 rounded-top-4">
+            <span class="fw-bold text-dark d-flex align-items-center gap-2">
+                <span>🏛️</span> Solution Architecture & Security Design
+            </span>
+        </div>
+        <div class="card-body p-4">
+            <div class="row g-4">
+                <div class="col-md-3">
+                    <div class="p-3 bg-light rounded-3 border h-100">
+                        <div class="fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                            <span>🚪</span> YARP Gateway
+                        </div>
+                        <p class="text-muted small mb-0">
+                            Single entry point for the entire application cluster. Handles secure cookie termination, anti-CSRF headers, and reverse proxy routing.
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="p-3 bg-light rounded-3 border h-100">
+                        <div class="fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                            <span>🛡️</span> Hybrid WebBff
+                        </div>
+                        <p class="text-muted small mb-0">
+                            Translates browser cookies into Bearer Tokens (Token Relay). Performs edge FluentValidation before delegating to backend services.
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="p-3 bg-light rounded-3 border h-100">
+                        <div class="fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                            <span>⚙️</span> Core Service
+                        </div>
+                        <p class="text-muted small mb-0">
+                            Clean Architecture backend validating JWT bearer tokens, enforcing role-based policies (<code>admin</code>, <code>articles:create</code>, <code>articles:delete</code>).
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="p-3 bg-light rounded-3 border h-100">
+                        <div class="fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                            <span>🔑</span> Keycloak 26.8
+                        </div>
+                        <p class="text-muted small mb-0">
+                            OpenID Connect Identity Provider. Supports OAuth 2.0 Authorization Code flow with PKCE, M2M Client Credentials, and custom realm roles.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

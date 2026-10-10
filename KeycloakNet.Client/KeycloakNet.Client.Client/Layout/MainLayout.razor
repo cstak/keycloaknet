@@ -1,0 +1,78 @@
+@inherits LayoutComponentBase
+@inject NavigationManager Navigation
+@inject IConfiguration Configuration
+
+<div class="page">
+    <div class="sidebar">
+        <NavMenu />
+    </div>
+
+    <main>
+        <header class="top-row px-4 d-flex justify-content-between align-items-center border-bottom bg-white shadow-sm">
+            <div class="d-none d-md-flex align-items-center gap-2 text-muted small">
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle">.NET 10</span>
+                <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle">Aspire</span>
+                <span class="badge bg-secondary-subtle text-secondary border">YARP Gateway</span>
+                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">Hybrid BFF</span>
+                <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Keycloak 26.8</span>
+            </div>
+
+            <div class="d-flex align-items-center gap-2">
+                <AuthorizeView>
+                    <Authorized>
+                        <div class="d-flex align-items-center gap-2 bg-light px-3 py-1 rounded-pill border">
+                            <span class="text-success fs-6">●</span>
+                            <span class="small fw-semibold text-dark">@context.User.Identity?.Name</span>
+                        </div>
+                        <a href="@GetLogoutUrl()" class="btn btn-outline-danger btn-sm rounded-pill px-3">
+                            Log Out
+                        </a>
+                    </Authorized>
+                    <NotAuthorized>
+                        <span class="badge bg-light text-secondary border px-2 py-1 rounded-pill me-1 small">
+                            Anonymous
+                        </span>
+                        <a href="@GetLoginUrl()" class="btn btn-outline-primary btn-sm rounded-pill px-3">
+                            Log In
+                        </a>
+                        <a href="@GetRegisterUrl()" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm">
+                            Register
+                        </a>
+                    </NotAuthorized>
+                </AuthorizeView>
+            </div>
+        </header>
+
+        <article class="content px-4 py-4 bg-light min-vh-100">
+            @Body
+        </article>
+    </main>
+</div>
+
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
+</div>
+
+@code {
+    private string GatewayBaseUrl => Configuration["Gateway:BaseUrl"]?.TrimEnd('/') ?? "http://localhost:5000";
+
+    private string GetLoginUrl()
+    {
+        var returnUrl = Uri.EscapeDataString(Navigation.Uri);
+        return $"{GatewayBaseUrl}/bff/login?returnUrl={returnUrl}";
+    }
+
+    private string GetRegisterUrl()
+    {
+        var returnUrl = Uri.EscapeDataString(Navigation.Uri);
+        return $"{GatewayBaseUrl}/bff/register?returnUrl={returnUrl}";
+    }
+
+    private string GetLogoutUrl()
+    {
+        var returnUrl = Uri.EscapeDataString(Navigation.Uri);
+        return $"{GatewayBaseUrl}/bff/logout?returnUrl={returnUrl}";
+    }
+}
