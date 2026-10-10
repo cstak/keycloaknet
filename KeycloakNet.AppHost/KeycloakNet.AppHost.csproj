@@ -7,7 +7,14 @@
     <Nullable>enable</Nullable>
     <AspireUseCliBundle>true</AspireUseCliBundle>
     <UserSecretsId>f1fcbaf0-3a83-4b2e-ac25-445e532ff2b6</UserSecretsId>
+    <AssemblyName>KeycloakNet.AppHost</AssemblyName>
+    <RootNamespace>KeycloakNet.AppHost</RootNamespace>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" />
+  </ItemGroup>
+
 
   <ItemGroup>
     <ProjectReference Include="..\KeycloakNet.WebBff\KeycloakNet.WebBff.csproj" />
