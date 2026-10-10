@@ -1,6 +1,6 @@
 var builder = WebApplication.CreateBuilder(args);
 
-// Enable credentialed CORS for Blazor Client
+// Enable credentialed CORS for Web Client
 var allowedOrigin = builder.Configuration["Cors:AllowedOrigin"]
     ?? throw new InvalidOperationException("Required configuration 'Cors:AllowedOrigin' is missing.");
 
